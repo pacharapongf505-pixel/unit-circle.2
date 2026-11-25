@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>วงกลมหนึ่งหน่วย (Unit Circle) - สื่อการเรียนรู้คณิตศาสตร์</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt & Sarabun for clean Thai typography, JetBrains Mono for numbers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'Sarabun', 'sans-serif'],
+                        body: ['Sarabun', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        indigo: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        rose: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                        },
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #4f46e5;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+            cursor: pointer;
+            margin-top: -8px;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #4338ca;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 999px;
+        }
+        /* Fraction formatting helper */
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            line-height: 1.05;
+            font-size: 0.9em;
+            margin: 0 2px;
+        }
+        .frac > span:first-child {
+            border-bottom: 1.5px solid currentColor;
+            padding: 0 3px 1px 3px;
+        }
+        .frac > span:last-child {
+            padding: 1px 3px 0 3px;
+        }
+        /* Prevent pull-to-refresh on canvas touch */
+        #unitCanvas {
+            touch-action: none;
+            cursor: grab;
+        }
+        #unitCanvas:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col selection:bg-indigo-100 selection:text-indigo-800">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3">
+                <!-- Brand / Title -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <circle cx="12" cy="12" r="9" />
+                            <line x1="12" y1="2" x2="12" y2="22" stroke-opacity="0.4" />
+                            <line x1="2" y1="12" x2="22" y2="12" stroke-opacity="0.4" />
+                            <line x1="12" y1="12" x2="18.36" y2="5.64" stroke="#fda4af" stroke-width="2.5" />
+                            <circle cx="18.36" cy="5.64" r="2" fill="#f43f5e" stroke="none" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight leading-tight">
+                            วงกลมหนึ่งหน่วย <span class="text-indigo-600 font-semibold text-base">(Unit Circle)</span>
+                        </h1>
+                        <p class="text-xs text-slate-500 font-body">สื่อการเรียนรู้ฟังก์ชันตรีโกณมิติแบบโต้ตอบได้ • สมการ x² + y² = 1</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 self-start sm:self-auto w-full sm:w-auto" role="tablist">
+                    <button id="tab-explore" onclick="switchTab('explore')" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all bg-white text-indigo-700 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+                        <span>สำรวจวงกลม</span>
+                    </button>
+                    <button id="tab-cheatsheet" onclick="switchTab('cheatsheet')" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>สรุปสูตร & ตารางค่า</span>
+                    </button>
+                    <button id="tab-quiz" onclick="switchTab('quiz')" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        <span>มินิควิซ</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+
+        <!-- ========================================================= -->
+        <!-- VIEW 1: EXPLORE MODE (Interactive Unit Circle)            -->
+        <!-- ========================================================= -->
+        <section id="view-explore" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Column: Interactive Canvas -->
+            <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <!-- Canvas Top Instruction Banner -->
+                <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                        <span>คลิกหรือลาก <strong>จุดสีแดง</strong> บนเส้นรอบวงเพื่อเปลี่ยนมุม $\theta$</span>
+                    </div>
+                    <div class="flex items-center gap-3 font-medium">
+                        <span class="flex items-center gap-1 text-indigo-600"><span class="w-3 h-0.5 bg-indigo-600 inline-block"></span> cos θ (แกน x)</span>
+                        <span class="flex items-center gap-1 text-rose-600"><span class="w-3 h-0.5 bg-rose-600 inline-block"></span> sin θ (แกน y)</span>
+                        <span id="legend-tan" class="hidden items-center gap-1 text-emerald-600"><span class="w-3 h-0.5 bg-emerald-600 inline-block"></span> tan θ</span>
+                    </div>
+                </div>
+
+                <!-- Responsive Canvas Wrapper -->
+                <div id="canvas-container" class="relative w-full aspect-square max-h-[600px] mx-auto bg-white flex items-center justify-center p-2">
+                    <canvas id="unitCanvas" class="w-full h-full rounded-xl"></canvas>
+                </div>
+
+                <!-- Canvas Bottom Quick Toggles -->
+                <div class="px-4 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <!-- Toggle: Show Labels -->
+                    <label class="inline-flex items-center cursor-pointer select-none gap-2">
+                        <input type="checkbox" id="toggle-labels" checked onchange="draw()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                        <span class="text-xs sm:text-sm font-medium text-slate-700">แสดงป้ายมุมทั้งหมด</span>
+                    </label>
+
+                    <!-- Toggle: Show Tangent Line -->
+                    <label class="inline-flex items-center cursor-pointer select-none gap-2">
+                        <input type="checkbox" id="toggle-tangent" onchange="toggleTangentDisplay()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                        <span class="text-xs sm:text-sm font-medium text-slate-700">แสดงเส้นสัมผัส <span class="text-emerald-600 font-semibold">tan θ</span></span>
+                    </label>
+
+                    <!-- Toggle: Snap to Standard Angles -->
+                    <label class="inline-flex items-center cursor-pointer select-none gap-2">
+                        <input type="checkbox" id="toggle-snap" checked class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                        <span class="text-xs sm:text-sm font-medium text-slate-700">ดูดเข้ามุมมาตรฐาน (Snap)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Right Column: Controls & Real-time Telemetry -->
+            <div class="lg:col-span-5 flex flex-col gap-4">
+                
+                <!-- Card 1: Current Angle & Quadrant Info -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">มุมปัจจุบัน (Angle θ)</span>
+                        <span id="quadrant-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            จตุภาคที่ 1 (Q1) : บวกทั้งหมด
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Degrees Box -->
+                        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 flex flex-col justify-between">
+                            <span class="text-xs text-slate-500">องศา (Degree)</span>
+                            <div class="flex items-baseline gap-1 mt-1">
+                                <span id="val-deg" class="text-3xl font-bold font-mono text-slate-900">30°</span>
+                            </div>
+                        </div>
+                        <!-- Radians Box -->
+                        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-100 flex flex-col justify-between">
+                            <span class="text-xs text-slate-500">เรเดียน (Radian)</span>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <span id="val-rad-exact" class="text-2xl font-bold text-indigo-700 min-h-[36px] flex items-center">
+                                    <span class="frac"><span>π</span><span>6</span></span>
+                                </span>
+                                <span id="val-rad-dec" class="text-xs font-mono text-slate-400">(0.524 rad)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Angle Slider Control -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+                            <span>ปรับมุมด้วยแถบเลื่อน (0° - 360°)</span>
+                            <span id="coord-summary" class="font-mono text-slate-700 font-medium">P(0.866, 0.500)</span>
+                        </div>
+                        <input type="range" id="angle-slider" min="0" max="360" step="1" value="30" oninput="onSliderChange(this.value)" class="w-full">
+                        <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                            <span>0°</span>
+                            <span>90°</span>
+                            <span>180°</span>
+                            <span>270°</span>
+                            <span>360°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Trigonometric Values (Exact & Decimal) -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-slate-800">ค่าฟังก์ชันตรีโกณมิติ ณ มุม θ</h2>
+                        <span class="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">ค่าแม่นตรง / ทศนิยม</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- COSINE (X) -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                                    cos
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-indigo-950">cos(θ) <span class="text-xs font-normal text-indigo-600">= พิกัดแกน x</span></div>
+                                    <div class="text-xs text-slate-500">ชิด / ฉาก</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div id="val-cos-exact" class="text-xl font-bold text-indigo-700 min-h-[28px] flex items-center justify-end">
+                                    <span class="frac"><span>√3</span><span>2</span></span>
+                                </div>
+                                <div id="val-cos-dec" class="text-xs font-mono text-slate-500">0.866</div>
+                            </div>
+                        </div>
+
+                        <!-- SINE (Y) -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-rose-50/60 border border-rose-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-rose-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                                    sin
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-rose-950">sin(θ) <span class="text-xs font-normal text-rose-600">= พิกัดแกน y</span></div>
+                                    <div class="text-xs text-slate-500">ข้าม / ฉาก</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div id="val-sin-exact" class="text-xl font-bold text-rose-600 min-h-[28px] flex items-center justify-end">
+                                    <span class="frac"><span>1</span><span>2</span></span>
+                                </div>
+                                <div id="val-sin-dec" class="text-xs font-mono text-slate-500">0.500</div>
+                            </div>
+                        </div>
+
+                        <!-- TANGENT (Y/X) -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                                    tan
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-emerald-950">tan(θ) <span class="text-xs font-normal text-emerald-600">= sin θ / cos θ</span></div>
+                                    <div class="text-xs text-slate-500">ข้าม / ชิด (ความชัน)</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div id="val-tan-exact" class="text-xl font-bold text-emerald-700 min-h-[28px] flex items-center justify-end">
+                                    <span class="frac"><span>√3</span><span>3</span></span>
+                                </div>
+                                <div id="val-tan-dec" class="text-xs font-mono text-slate-500">0.577</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Quick Standard Angle Buttons -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">เลือกมุมมาตรฐานด่วน (16 มุมหลัก)</h3>
+                    </div>
+                    <div id="preset-buttons" class="grid grid-cols-4 sm:grid-cols-4 gap-1.5">
+                        <!-- Buttons populated dynamically by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- VIEW 2: CHEAT SHEET & FORMULA SUMMARY                     -->
+        <!-- ========================================================= -->
+        <section id="view-cheatsheet" class="hidden space-y-6">
+            
+            <!-- Concept Intro Banner -->
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl p-6 text-white shadow-md">
+                <div class="max-w-3xl">
+                    <h2 class="text-xl sm:text-2xl font-bold mb-2">สรุปหัวใจสำคัญของวงกลมหนึ่งหน่วย</h2>
+                    <p class="text-indigo-100 text-sm sm:text-base font-body leading-relaxed">
+                        วงกลมหนึ่งหน่วยคือวงกลมที่มีจุดศูนย์กลางที่ <span class="font-mono bg-white/20 px-1.5 py-0.5 rounded">(0, 0)</span> และรัศมี <span class="font-mono bg-white/20 px-1.5 py-0.5 rounded">r = 1</span> 
+                        เมื่อวัดมุม <span class="font-mono">θ</span> ทวนเข็มนาฬิกาจากแกน <span class="font-mono">+x</span> พิกัดจุดปลายส่วนโค้ง <span class="font-mono">(x, y)</span> จะเท่ากับ <span class="font-mono font-bold text-amber-300">(cos θ, sin θ)</span> เสมอ
+                    </p>
+                </div>
+            </div>
+
+            <!-- Grid: 4 Quadrants Sign Rule & Hand Trick -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- 4 Quadrants Sign Rules -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">1. กฎเครื่องหมายใน 4 จตุภาค (All - Sin - Tan - Cos)</h3>
+                    <p class="text-xs text-slate-500 mb-4 font-body">จำง่ายๆ ว่า <strong>"All - Sin - Tan - Cos"</strong> (จตุภาคที่ 1 → 2 → 3 → 4) คือฟังก์ชันที่มีค่าเป็นบวก (+)</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <!-- Q2 -->
+                        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200/80">
+                            <div class="text-xs font-bold text-rose-500 uppercase">จตุภาคที่ 2 (90° – 180°)</div>
+                            <div class="text-xl font-extrabold text-rose-700 my-1">SIN (+)</div>
+                            <div class="text-xs text-slate-600 font-mono">x เป็นลบ (-), y เป็นบวก (+)</div>
+                            <div class="text-xs text-rose-600 mt-1 font-medium">มุมอ้างอิง: 180° - θ</div>
+                        </div>
+                        <!-- Q1 -->
+                        <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200/80">
+                            <div class="text-xs font-bold text-indigo-500 uppercase">จตุภาคที่ 1 (0° – 90°)</div>
+                            <div class="text-xl font-extrabold text-indigo-700 my-1">ALL (+)</div>
+                            <div class="text-xs text-slate-600 font-mono">x เป็นบวก (+), y เป็นบวก (+)</div>
+                            <div class="text-xs text-indigo-600 mt-1 font-medium">มุมหลัก: θ</div>
+                        </div>
+                        <!-- Q3 -->
+                        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200/80">
+                            <div class="text-xs font-bold text-emerald-600 uppercase">จตุภาคที่ 3 (180° – 270°)</div>
+                            <div class="text-xl font-extrabold text-emerald-700 my-1">TAN (+)</div>
+                            <div class="text-xs text-slate-600 font-mono">x เป็นลบ (-), y เป็นลบ (-)</div>
+                            <div class="text-xs text-emerald-600 mt-1 font-medium">มุมอ้างอิง: θ - 180°</div>
+                        </div>
+                        <!-- Q4 -->
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200/80">
+                            <div class="text-xs font-bold text-amber-600 uppercase">จตุภาคที่ 4 (270° – 360°)</div>
+                            <div class="text-xl font-extrabold text-amber-700 my-1">COS (+)</div>
+                            <div class="text-xs text-slate-600 font-mono">x เป็นบวก (+), y เป็นลบ (-)</div>
+                            <div class="text-xs text-amber-600 mt-1 font-medium">มุมอ้างอิง: 360° - θ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Important Identities -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1">2. เอกลักษณ์ตรีโกณมิติพื้นฐานที่ต้องรู้</h3>
+                        <p class="text-xs text-slate-500 mb-4 font-body">ความสัมพันธ์ที่ได้จากทฤษฎีบทพีทาโกรัสในวงกลมหนึ่งหน่วย</p>
+                        
+                        <div class="space-y-3 font-mono text-sm">
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-600 font-sans text-xs font-semibold">เอกลักษณ์พีทาโกรัส</span>
+                                <span class="font-bold text-indigo-700 text-base">sin²θ + cos²θ = 1</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-600 font-sans text-xs font-semibold">นิยามของ Tangent</span>
+                                <span class="font-bold text-emerald-700 text-base">tan θ = sin θ / cos θ</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-600 font-sans text-xs font-semibold">มุมลบ (สมมาตรแกน x)</span>
+                                <span class="font-bold text-slate-800">cos(-θ) = cos θ , sin(-θ) = -sin θ</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                                <span class="text-slate-600 font-sans text-xs font-semibold">การแปลงหน่วยมุม</span>
+                                <span class="font-bold text-slate-800">180° = π เรเดียน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-xs flex items-center justify-between">
+                        <span>อยากเห็นภาพจริงของมุมเหล่านี้ใช่ไหม?</span>
+                        <button onclick="switchTab('explore')" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
+                            ไปที่วงกลมจำลอง →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Reference Table -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">3. ตารางสรุปค่าตรีโกณมิติมุมมาตรฐาน (0° – 360°)</h3>
+                        <p class="text-xs text-slate-500">คลิกที่ปุ่ม <strong>"ดูบนวงกลม"</strong> ในแถวใดก็ได้เพื่อจำลองมุมนั้นทันที</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                                <th class="py-3 px-4">มุม (องศา)</th>
+                                <th class="py-3 px-4">เรเดียน</th>
+                                <th class="py-3 px-4">จตุภาค</th>
+                                <th class="py-3 px-4 text-indigo-700">cos θ (ค่า x)</th>
+                                <th class="py-3 px-4 text-rose-600">sin θ (ค่า y)</th>
+                                <th class="py-3 px-4 text-emerald-700">tan θ (y/x)</th>
+                                <th class="py-3 px-4 text-right">จำลองภาพ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cheatsheet-table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Rows populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- VIEW 3: MINI QUIZ MODE                                    -->
+        <!-- ========================================================= -->
+        <section id="view-quiz" class="hidden max-w-2xl mx-auto">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <!-- Quiz Header -->
+                <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold">มินิควิซ: ทดสอบความแม่นยำวงกลมหนึ่งหน่วย</h2>
+                        <p class="text-xs text-slate-400">ทายค่า sin, cos, tan จากมุมองศาและเรเดียน</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400">คะแนนสะสม</div>
+                            <div class="text-xl font-bold font-mono text-emerald-400"><span id="quiz-score">0</span> / <span id="quiz-total">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Body -->
+                <div class="p-6 sm:p-8">
+                    <!-- Question Box -->
+                    <div class="text-center mb-6">
+                        <span id="quiz-badge" class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 mb-3">
+                            ข้อที่ 1
+                        </span>
+                        <h3 class="text-slate-500 text-sm mb-2">จงหาค่าแม่นตรงของฟังก์ชันตรีโกณมิติต่อไปนี้</h3>
+                        <div id="quiz-question" class="text-3xl sm:text-4xl font-bold text-slate-900 py-4 px-6 bg-slate-50 rounded-2xl border border-slate-200/80 inline-flex items-center justify-center min-w-[240px]">
+                            sin(150°) = ?
+                        </div>
+                    </div>
+
+                    <!-- 4 Multiple Choice Options -->
+                    <div id="quiz-options" class="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
+                        <!-- Options injected via JS -->
+                    </div>
+
+                    <!-- Feedback & Action Area -->
+                    <div id="quiz-feedback" class="hidden rounded-xl p-4 mb-4 border text-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <p id="quiz-feedback-title" class="font-bold text-base"></p>
+                                <p id="quiz-feedback-desc" class="text-xs mt-0.5 opacity-90"></p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button id="btn-inspect-quiz" onclick="inspectQuizAngle()" class="px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition shadow-sm">
+                                    ดูเฉลยบนวงกลม ↗
+                                </button>
+                                <button onclick="generateQuizQuestion()" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-700 transition shadow-sm">
+                                    ข้อถัดไป →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Helper Hint Toggle -->
+                    <div class="text-center">
+                        <button onclick="toggleQuizHint()" class="text-xs text-slate-400 hover:text-indigo-600 underline transition">
+                            ขอคำใบ้ (ดูจตุภาคและมุมอ้างอิง)
+                        </button>
+                        <p id="quiz-hint-text" class="hidden text-xs text-indigo-700 bg-indigo-50 rounded-lg py-2 px-3 mt-2"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <div>สื่อการเรียนรู้คณิตศาสตร์เรื่อง <strong>วงกลมหนึ่งหน่วย (Unit Circle)</strong></div>
+            <div>เคล็ดลับ: กดปุ่มลูกศร <strong>ซ้าย / ขวา</strong> บนคีย์บอร์ดเพื่อปรับมุมทีละ 1° ได้</div>
+        </div>
+    </footer>
+
+    <!-- ========================================================= -->
+    <!-- JAVASCRIPT APPLICATION LOGIC                              -->
+    <!-- ========================================================= -->
+    <script>
+        /**
+         * ข้อมูลมุมมาตรฐานทั้ง 16 มุมรอบวงกลมหนึ่งหน่วย
+         * เก็บค่าแม่นตรงในรูปแบบ HTML (เศษส่วนและรากที่สอง) เพื่อความสวยงามทางคณิตศาสตร์
+         */
+        const STANDARD_ANGLES = [
+            { deg: 0,   radHtml: '0', radPlain: '0', q: 'แกน +x',
+              cosHtml: '1', cosPlain: '1', sinHtml: '0', sinPlain: '0', tanHtml: '0', tanPlain: '0' },
+            { deg: 30,  radHtml: '<span class="frac"><span>π</span><span>6</span></span>', radPlain: 'π/6', q: 'Q1',
+              cosHtml: '<span class="frac"><span>√3</span><span>2</span></span>', cosPlain: '√3/2',
+              sinHtml: '<span class="frac"><span>1</span><span>2</span></span>', sinPlain: '1/2',
+              tanHtml: '<span class="frac"><span>√3</span><span>3</span></span>', tanPlain: '√3/3' },
+            { deg: 45,  radHtml: '<span class="frac"><span>π</span><span>4</span></span>', radPlain: 'π/4', q: 'Q1',
+              cosHtml: '<span class="frac"><span>√2</span><span>2</span></span>', cosPlain: '√2/2',
+              sinHtml: '<span class="frac"><span>√2</span><span>2</span></span>', sinPlain: '√2/2',
+              tanHtml: '1', tanPlain: '1' },
+            { deg: 60,  radHtml: '<span class="frac"><span>π</span><span>3</span></span>', radPlain: 'π/3', q: 'Q1',
+              cosHtml: '<span class="frac"><span>1</span><span>2</span></span>', cosPlain: '1/2',
+              sinHtml: '<span class="frac"><span>√3</span><span>2</span></span>', sinPlain: '√3/2',
+              tanHtml: '√3', tanPlain: '√3' },
+            { deg: 90,  radHtml: '<span class="frac"><span>π</span><span>2</span></span>', radPlain: 'π/2', q: 'แกน +y',
+              cosHtml: '0', cosPlain: '0', sinHtml: '1', sinPlain: '1', tanHtml: 'หาค่าไม่ได้', tanPlain: 'หาค่าไม่ได้' },
+            { deg: 120, radHtml: '<span class="frac"><span>2π</span><span>3</span></span>', radPlain: '2π/3', q: 'Q2',
+              cosHtml: '-<span class="frac"><span>1</span><span>2</span></span>', cosPlain: '-1/2',
+              sinHtml: '<span class="frac"><span>√3</span><span>2</span></span>', sinPlain: '√3/2',
+              tanHtml: '-√3', tanPlain: '-√3' },
+            { deg: 135, radHtml: '<span class="frac"><span>3π</span><span>4</span></span>', radPlain: '3π/4', q: 'Q2',
+              cosHtml: '-<span class="frac"><span>√2</span><span>2</span></span>', cosPlain: '-√2/2',
+              sinHtml: '<span class="frac"><span>√2</span><span>2</span></span>', sinPlain: '√2/2',
+              tanHtml: '-1', tanPlain: '-1' },
+            { deg: 150, radHtml: '<span class="frac"><span>5π</span><span>6</span></span>', radPlain: '5π/6', q: 'Q2',
+              cosHtml: '-<span class="frac"><span>√3</span><span>2</span></span>', cosPlain: '-√3/2',
+              sinHtml: '<span class="frac"><span>1</span><span>2</span></span>', sinPlain: '1/2',
+              tanHtml: '-<span class="frac"><span>√3</span><span>3</span></span>', tanPlain: '-√3/3' },
+            { deg: 180, radHtml: 'π', radPlain: 'π', q: 'แกน -x',
+              cosHtml: '-1', cosPlain: '-1', sinHtml: '0', sinPlain: '0', tanHtml: '0', tanPlain: '0' },
+            { deg: 210, radHtml: '<span class="frac"><span>7π</span><span>6</span></span>', radPlain: '7π/6', q: 'Q3',
+              cosHtml: '-<span class="frac"><span>√3</span><span>2</span></span>', cosPlain: '-√3/2',
+              sinHtml: '-<span class="frac"><span>1</span><span>2</span></span>', sinPlain: '-1/2',
+              tanHtml: '<span class="frac"><span>√3</span><span>3</span></span>', tanPlain: '√3/3' },
+            { deg: 225, radHtml: '<span class="frac"><span>5π</span><span>4</span></span>', radPlain: '5π/4', q: 'Q3',
+              cosHtml: '-<span class="frac"><span>√2</span><span>2</span></span>', cosPlain: '-√2/2',
+              sinHtml: '-<span class="frac"><span>√2</span><span>2</span></span>', sinPlain: '-√2/2',
+              tanHtml: '1', tanPlain: '1' },
+            { deg: 240, radHtml: '<span class="frac"><span>4π</span><span>3</span></span>', radPlain: '4π/3', q: 'Q3',
+              cosHtml: '-<span class="frac"><span>1</span><span>2</span></span>', cosPlain: '-1/2',
+              sinHtml: '-<span class="frac"><span>√3</span><span>2</span></span>', sinPlain: '-√3/2',
+              tanHtml: '√3', tanPlain: '√3' },
+            { deg: 270, radHtml: '<span class="frac"><span>3π</span><span>2</span></span>', radPlain: '3π/2', q: 'แกน -y',
+              cosHtml: '0', cosPlain: '0', sinHtml: '-1', sinPlain: '-1', tanHtml: 'หาค่าไม่ได้', tanPlain: 'หาค่าไม่ได้' },
+            { deg: 300, radHtml: '<span class="frac"><span>5π</span><span>3</span></span>', radPlain: '5π/3', q: 'Q4',
+              cosHtml: '<span class="frac"><span>1</span><span>2</span></span>', cosPlain: '1/2',
+              sinHtml: '-<span class="frac"><span>√3</span><span>2</span></span>', sinPlain: '-√3/2',
+              tanHtml: '-√3', tanPlain: '-√3' },
+            { deg: 315, radHtml: '<span class="frac"><span>7π</span><span>4</span></span>', radPlain: '7π/4', q: 'Q4',
+              cosHtml: '<span class="frac"><span>√2</span><span>2</span></span>', cosPlain: '√2/2',
+              sinHtml: '-<span class="frac"><span>√2</span><span>2</span></span>', sinPlain: '-√2/2',
+              tanHtml: '-1', tanPlain: '-1' },
+            { deg: 330, radHtml: '<span class="frac"><span>11π</span><span>6</span></span>', radPlain: '11π/6', q: 'Q4',
+              cosHtml: '<span class="frac"><span>√3</span><span>2</span></span>', cosPlain: '√3/2',
+              sinHtml: '-<span class="frac"><span>1</span><span>2</span></span>', sinPlain: '-1/2',
+              tanHtml: '-<span class="frac"><span>√3</span><span>3</span></span>', tanPlain: '-√3/3' }
+        ];
+
+        // Application State
+        let currentAngleDeg = 30;
+        let isDragging = false;
+        let canvas, ctx;
+
+        // Quiz State
+        let quizScore = 0;
+        let quizTotal = 0;
+        let currentQuiz = null;
+        let quizAnswered = false;
+
+        /**
+         * เริ่มต้นการทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('unitCanvas');
+            ctx = canvas.getContext('2d');
+
+            initPresetButtons();
+            initCheatSheetTable();
+            setupCanvasEvents();
+            resizeCanvas();
+            setAngle(30);
+            generateQuizQuestion();
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                draw();
+            });
+
+            // Keyboard arrow support
+            window.addEventListener('keydown', (e) => {
+                if (document.getElementById('view-explore').classList.contains('hidden')) return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setAngle((currentAngleDeg + 1) % 360);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setAngle((currentAngleDeg - 1 + 360) % 360);
+                }
+            });
+        });
+
+        /**
+         * ปรับขนาด Canvas ให้คมชัดระดับ Retina (High-DPI) และพอดีกับกล่องบรรจุ
+         */
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            const size = Math.min(rect.width, rect.height);
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        /**
+         * สร้างปุ่มลัดสำหรับมุมมาตรฐานทั้ง 16 มุม
+         */
+        function initPresetButtons() {
+            const container = document.getElementById('preset-buttons');
+            container.innerHTML = '';
+            STANDARD_ANGLES.forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.deg = item.deg;
+                btn.className = 'preset-btn py-1.5 px-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 text-xs font-mono font-semibold text-slate-700 transition flex flex-col items-center justify-center';
+                btn.innerHTML = `<span>${item.deg}°</span><span class="text-[10px] text-slate-400 font-sans">${item.radPlain}</span>`;
+                btn.onclick = () => setAngle(item.deg);
+                container.appendChild(btn);
+            });
+        }
+
+        /**
+         * สร้างตารางสรุปค่าในหน้า Cheat Sheet
+         */
+        function initCheatSheetTable() {
+            const tbody = document.getElementById('cheatsheet-table-body');
+            tbody.innerHTML = '';
+            const allRows = [...STANDARD_ANGLES, {
+                deg: 360, radHtml: '2π', radPlain: '2π', q: 'แกน +x',
+                cosHtml: '1', sinHtml: '0', tanHtml: '0'
+            }];
+
+            allRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-4 font-mono font-bold text-slate-800">${row.deg}°</td>
+                    <td class="py-2.5 px-4 font-medium text-indigo-700">${row.radHtml}</td>
+                    <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">${row.q}</span></td>
+                    <td class="py-2.5 px-4 font-semibold text-indigo-700">${row.cosHtml}</td>
+                    <td class="py-2.5 px-4 font-semibold text-rose-600">${row.sinHtml}</td>
+                    <td class="py-2.5 px-4 font-semibold text-emerald-700">${row.tanHtml}</td>
+                    <td class="py-2.5 px-4 text-right">
+                        <button onclick="jumpToAngle(${row.deg})" class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white text-xs font-medium transition">
+                            ดูบนวงกลม
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * สลับแท็บหน้าจอหลัก
+         */
+        function switchTab(tabName) {
+            const tabs = ['explore', 'cheatsheet', 'quiz'];
+            tabs.forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    btn.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+                    btn.classList.remove('text-slate-600');
+                } else {
+                    view.classList.add('hidden');
+                    btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+                    btn.classList.add('text-slate-600');
+                }
+            });
+
+            if (tabName === 'explore') {
+                setTimeout(() => {
+                    resizeCanvas();
+                    draw();
+                }, 10);
+            }
+        }
+
+        /**
+         * กระโดดจากตารางหรือเฉลยควิซไปยังมุมนั้นบนวงกลมทันที
+         */
+        function jumpToAngle(deg) {
+            switchTab('explore');
+            setAngle(deg === 360 ? 0 : deg);
+        }
+
+        /**
+         * เปิด/ปิดการแสดงเส้นสัมผัส tan θ
+         */
+        function toggleTangentDisplay() {
+            const isChecked = document.getElementById('toggle-tangent').checked;
+            const legend = document.getElementById('legend-tan');
+            if (isChecked) {
+                legend.classList.remove('hidden');
+                legend.classList.add('flex');
+            } else {
+                legend.classList.add('hidden');
+                legend.classList.remove('flex');
+            }
+            draw();
+        }
+
+        /**
+         * จัดการเหตุการณ์เมาส์และสัมผัส (Touch) บน Canvas
+         */
+        function setupCanvasEvents() {
+            const getAngleFromEvent = (clientX, clientY) => {
+                const rect = canvas.getBoundingClientRect();
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const x = clientX - rect.left - cx;
+                const y = -(clientY - rect.top - cy); // กลับแกน Y ให้ชี้ขึ้นตามคณิตศาสตร์
+
+                let rad = Math.atan2(y, x);
+                let deg = rad * (180 / Math.PI);
+                if (deg < 0) deg += 360;
+
+                // ระบบ Snap-to-angle เมื่อลากเข้าใกล้มุมมาตรฐานภายในรัศมี 4 องศา
+                const snapEnabled = document.getElementById('toggle-snap').checked;
+                if (snapEnabled) {
+                    const targets = [...STANDARD_ANGLES.map(a => a.deg), 360];
+                    for (let target of targets) {
+                        if (Math.abs(deg - target) <= 4) {
+                            deg = target === 360 ? 0 : target;
+                            break;
+                        }
+                    }
+                }
+                return Math.round(deg) % 360;
+            };
+
+            // Mouse events
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                setAngle(getAngleFromEvent(e.clientX, e.clientY));
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                setAngle(getAngleFromEvent(e.clientX, e.clientY));
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch events (Mobile / Tablet)
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    isDragging = true;
+                    const touch = e.touches[0];
+                    setAngle(getAngleFromEvent(touch.clientX, touch.clientY));
+                }
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length === 0) return;
+                const touch = e.touches[0];
+                setAngle(getAngleFromEvent(touch.clientX, touch.clientY));
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        function onSliderChange(val) {
+            setAngle(parseInt(val, 10));
+        }
+
+        /**
+         * หาตัวหารร่วมมาก (GCD) เพื่อทำเศษส่วนเรเดียนอย่างต่ำ
+         */
+        function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+        }
+
+        /**
+         * แปลงองศาเป็นเศษส่วนของ π อย่างต่ำ
+         */
+        function formatRadianFraction(deg) {
+            const norm = ((deg % 360) + 360) % 360;
+            if (norm === 0) return '0';
+            if (norm === 180) return 'π';
+            const divisor = gcd(norm, 180);
+            const num = norm / divisor;
+            const den = 180 / divisor;
+            const numStr = num === 1 ? 'π' : `${num}π`;
+            return `<span class="frac"><span>${numStr}</span><span>${den}</span></span>`;
+        }
+
+        /**
+         * อัปเดตมุมปัจจุบันและแสดงผลข้อมูลทั้งหมดบนหน้าจอ
+         */
+        function setAngle(deg) {
+            currentAngleDeg = deg;
+            const displayDeg = deg === 360 ? 360 : ((deg % 360) + 360) % 360;
+            const normDeg = displayDeg === 360 ? 0 : displayDeg;
+
+            // อัปเดต Slider
+            document.getElementById('angle-slider').value = displayDeg;
+
+            // อัปเดตตัวเลของศาและเรเดียน
+            const rad = (normDeg * Math.PI) / 180;
+            document.getElementById('val-deg').textContent = `${displayDeg}°`;
+            document.getElementById('val-rad-dec').textContent = `(${rad.toFixed(3)} rad)`;
+
+            // ตรวจสอบว่าเป็นมุมมาตรฐานหรือไม่
+            const std = STANDARD_ANGLES.find(a => a.deg === normDeg);
+
+            if (std) {
+                document.getElementById('val-rad-exact').innerHTML = displayDeg === 360 ? '2π' : std.radHtml;
+                document.getElementById('val-cos-exact').innerHTML = std.cosHtml;
+                document.getElementById('val-sin-exact').innerHTML = std.sinHtml;
+                document.getElementById('val-tan-exact').innerHTML = std.tanHtml;
+            } else {
+                document.getElementById('val-rad-exact').innerHTML = formatRadianFraction(displayDeg);
+                const c = Math.cos(rad);
+                const s = Math.sin(rad);
+                document.getElementById('val-cos-exact').textContent = c.toFixed(3);
+                document.getElementById('val-sin-exact').textContent = s.toFixed(3);
+                if (Math.abs(c) < 1e-10) {
+                    document.getElementById('val-tan-exact').textContent = 'หาค่าไม่ได้';
+                } else {
+                    document.getElementById('val-tan-exact').textContent = (s / c).toFixed(3);
+                }
+            }
+
+            // คำนวณทศนิยม 3 ตำแหน่ง
+            const cosVal = Math.cos(rad);
+            const sinVal = Math.sin(rad);
+            const cleanCos = Math.abs(cosVal) < 1e-10 ? 0 : cosVal;
+            const cleanSin = Math.abs(sinVal) < 1e-10 ? 0 : sinVal;
+
+            document.getElementById('val-cos-dec').textContent = cleanCos.toFixed(3);
+            document.getElementById('val-sin-dec').textContent = cleanSin.toFixed(3);
+            document.getElementById('coord-summary').textContent = `P(${cleanCos.toFixed(3)}, ${cleanSin.toFixed(3)})`;
+
+            if (Math.abs(cleanCos) < 1e-10) {
+                document.getElementById('val-tan-dec').textContent = '∞ (Undefined)';
+            } else {
+                const tanVal = cleanSin / cleanCos;
+                document.getElementById('val-tan-dec').textContent = tanVal.toFixed(3);
+            }
+
+            // อัปเดตป้ายจตุภาค (Quadrant Badge)
+            const qBadge = document.getElementById('quadrant-badge');
+            if (normDeg === 0 || normDeg === 90 || normDeg === 180 || normDeg === 270) {
+                qBadge.textContent = `อยู่บนแกนพิกัด (${std ? std.q : ''})`;
+                qBadge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200';
+            } else if (normDeg > 0 && normDeg < 90) {
+                qBadge.textContent = 'จตุภาคที่ 1 (Q1) : All (+)';
+                qBadge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200';
+            } else if (normDeg > 90 && normDeg < 180) {
+                qBadge.textContent = 'จตุภาคที่ 2 (Q2) : Sin (+)';
+                qBadge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+            } else if (normDeg > 180 && normDeg < 270) {
+                qBadge.textContent = 'จตุภาคที่ 3 (Q3) : Tan (+)';
+                qBadge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+            } else {
+                qBadge.textContent = 'จตุภาคที่ 4 (Q4) : Cos (+)';
+                qBadge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200';
+            }
+
+            // ไฮไลต์ปุ่มมุมมาตรฐานที่ตรงกัน
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                const bDeg = parseInt(btn.dataset.deg, 10);
+                if (bDeg === normDeg) {
+                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+                    btn.classList.remove('bg-slate-50', 'text-slate-700', 'border-slate-200');
+                    btn.querySelector('span:last-child').classList.replace('text-slate-400', 'text-indigo-200');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+                    btn.classList.add('bg-slate-50', 'text-slate-700', 'border-slate-200');
+                    btn.querySelector('span:last-child').classList.replace('text-indigo-200', 'text-slate-400');
+                }
+            });
+
+            draw();
+        }
+
+        /**
+         * วาดกราฟิกวงกลมหนึ่งหน่วยทั้งหมดลงบน HTML5 Canvas
+         */
+        function draw() {
+            if (!ctx) return;
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // เผื่อขอบรอบวงกลมสำหรับป้ายกำกับมุม
+            const showLabels = document.getElementById('toggle-labels').checked;
+            const showTangent = document.getElementById('toggle-tangent').checked;
+            const padding = showLabels ? Math.max(54, width * 0.13) : Math.max(32, width * 0.08);
+            const R = Math.max(60, Math.min(cx, cy) - padding);
+
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. วาดเส้นตารางพื้นหลังแบบบางเบา (Subtle Grid)
+            ctx.strokeStyle = '#f1f5f9';
+            ctx.lineWidth = 1;
+            const gridStep = R / 4;
+            for (let x = cx % gridStep; x < width; x += gridStep) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let y = cy % gridStep; y < height; y += gridStep) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            // 2. วาดลายน้ำจตุภาค (Q1 - Q4 Watermarks)
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const qOffset = R * 0.46;
+            const quadrants = [
+                { label: 'Q1', sub: 'All (+)', x: cx + qOffset, y: cy - qOffset, color: 'rgba(79, 70, 229, 0.11)' },
+                { label: 'Q2', sub: 'Sin (+)', x: cx - qOffset, y: cy - qOffset, color: 'rgba(225, 29, 72, 0.11)' },
+                { label: 'Q3', sub: 'Tan (+)', x: cx - qOffset, y: cy + qOffset, color: 'rgba(5, 150, 105, 0.11)' },
+                { label: 'Q4', sub: 'Cos (+)', x: cx + qOffset, y: cy + qOffset, color: 'rgba(217, 119, 6, 0.11)' }
+            ];
+            quadrants.forEach(q => {
+                ctx.fillStyle = q.color;
+                ctx.font = `700 ${Math.max(18, R * 0.14)}px Prompt, sans-serif`;
+                ctx.fillText(q.label, q.x, q.y - 8);
+                ctx.font = `600 ${Math.max(11, R * 0.075)}px Prompt, sans-serif`;
+                ctx.fillText(q.sub, q.x, q.y + 12);
+            });
+            ctx.restore();
+
+            // 3. วาดแกนพิกัด X และ Y
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            // แกน X
+            ctx.beginPath();
+            ctx.moveTo(14, cy);
+            ctx.lineTo(width - 14, cy);
+            ctx.stroke();
+            // แกน Y
+            ctx.beginPath();
+            ctx.moveTo(cx, 14);
+            ctx.lineTo(cx, height - 14);
+            ctx.stroke();
+
+            // ป้ายชื่อแกน X, Y
+            ctx.fillStyle = '#64748b';
+            ctx.font = '600 12px JetBrains Mono, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText('+x', width - 16, cy - 8);
+            ctx.textAlign = 'left';
+            ctx.fillText('+y', cx + 8, 22);
+
+            // 4. วาดเส้นรอบวงกลมหนึ่งหน่วย
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 5. วาดจุดมุมมาตรฐานทั้ง 16 จุด และป้ายกำกับรอบวงกลม
+            STANDARD_ANGLES.forEach(item => {
+                const rad = (item.deg * Math.PI) / 180;
+                const px = cx + R * Math.cos(rad);
+                const py = cy - R * Math.sin(rad);
+
+                // วาดเส้นรัศมีจางๆ สำหรับมุมมาตรฐาน
+                ctx.strokeStyle = 'rgba(203, 213, 225, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(px, py);
+                ctx.stroke();
+
+                // จุดเล็กบนเส้นรอบวง
+                ctx.fillStyle = '#64748b';
+                ctx.beginPath();
+                ctx.arc(px, py, 3.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ป้ายกำกับองศาและเรเดียนด้านนอกวงกลม
+                if (showLabels) {
+                    const labelDist = R + (width < 400 ? 22 : 28);
+                    const lx = cx + labelDist * Math.cos(rad);
+                    const ly = cy - labelDist * Math.sin(rad);
+
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const isSelected = ((currentAngleDeg % 360) + 360) % 360 === item.deg;
+
+                    ctx.fillStyle = isSelected ? '#4f46e5' : '#334155';
+                    ctx.font = isSelected ? '700 11px JetBrains Mono, monospace' : '600 10px JetBrains Mono, monospace';
+                    ctx.fillText(`${item.deg}°`, lx, ly - 6);
+
+                    ctx.fillStyle = isSelected ? '#6366f1' : '#94a3b8';
+                    ctx.font = '500 9.5px Prompt, sans-serif';
+                    ctx.fillText(item.radPlain, lx, ly + 6);
+                    ctx.restore();
+                }
+            });
+
+            // 6. คำนวณพิกัดของมุมปัจจุบัน θ
+            const normDeg = ((currentAngleDeg % 360) + 360) % 360;
+            const thetaRad = (normDeg * Math.PI) / 180;
+            const cosT = Math.cos(thetaRad);
+            const sinT = Math.sin(thetaRad);
+
+            const pointX = cx + R * cosT;
+            const pointY = cy - R * sinT;
+
+            // 7. วาดพื้นที่สามเหลี่ยมมุมฉากจางๆ (Right Triangle Shading)
+            if (Math.abs(cosT) > 0.01 && Math.abs(sinT) > 0.01) {
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.08)';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(pointX, cy);
+                ctx.lineTo(pointX, pointY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // 8. วาดส่วนโค้งแสดงขนาดมุม θ (Angle Sector Arc)
+            if (normDeg > 0) {
+                const arcRadius = Math.min(34, R * 0.22);
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, arcRadius, 0, -thetaRad, true);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, arcRadius, 0, -thetaRad, true);
+                ctx.stroke();
+
+                // ป้ายสัญลักษณ์ θ
+                const midAngle = thetaRad / 2;
+                const textR = arcRadius + 13;
+                ctx.fillStyle = '#b45309';
+                ctx.font = 'bold 12px Prompt, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('θ', cx + textR * Math.cos(midAngle), cy - textR * Math.sin(midAngle));
+            }
+
+            // 9. วาดเส้นทึบบนแกน X (ค่า cos θ) และเส้นประตั้งฉาก
+            ctx.strokeStyle = '#4f46e5'; // Indigo
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(pointX, cy);
+            ctx.stroke();
+
+            // เส้นประสีน้ำเงินจากจุด P ลงแกน X
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pointX, pointY);
+            ctx.lineTo(pointX, cy);
+            ctx.stroke();
+            ctx.restore();
+
+            // 10. วาดเส้นทึบบนแกน Y (ค่า sin θ) และเส้นประตั้งฉาก
+            ctx.strokeStyle = '#e11d48'; // Rose
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx, pointY);
+            ctx.stroke();
+
+            // เส้นประสีแดงจากจุด P ไปแกน Y
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(pointX, pointY);
+            ctx.lineTo(cx, pointY);
+            ctx.stroke();
+            ctx.restore();
+
+            // 11. วาดเส้นสัมผัสวงกลม (Tangent Line) เมื่อเปิดใช้งาน
+            if (showTangent) {
+                const tangentX = cx + R; // เส้นสัมผัสที่ x = 1
+                // วาดเส้นแนวตั้งที่ x = 1
+                ctx.save();
+                ctx.setLineDash([3, 3]);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(tangentX, 16);
+                ctx.lineTo(tangentX, height - 16);
+                ctx.stroke();
+                ctx.restore();
+
+                if (Math.abs(cosT) > 0.05) {
+                    const tanVal = sinT / cosT;
+                    const tanY = cy - R * tanVal;
+                    const clampedTanY = Math.max(10, Math.min(height - 10, tanY));
+
+                    // เส้นต่อจากจุดศูนย์กลางผ่านจุด P ไปตัดเส้นสัมผัส x = 1
+                    ctx.save();
+                    ctx.setLineDash([4, 3]);
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(tangentX, clampedTanY);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // เส้นทึบสีเขียวแสดงความยาว tan θ บนเส้นสัมผัส
+                    ctx.strokeStyle = '#059669';
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(tangentX, cy);
+                    ctx.lineTo(tangentX, clampedTanY);
+                    ctx.stroke();
+
+                    // จุดตัดบนเส้นสัมผัส
+                    ctx.fillStyle = '#059669';
+                    ctx.beginPath();
+                    ctx.arc(tangentX, clampedTanY, 4.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 12. วาดเส้นรัศมีหลักจากจุดกำเนิดไปยังจุด P
+            ctx.strokeStyle = '#1e1b4b';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(pointX, pointY);
+            ctx.stroke();
+
+            // จุดศูนย์กลาง (0,0)
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 13. วาดจุดควบคุมสีแดง (Interactive Handle) ที่ปลายรัศมี
+            // รัศมีเรืองแสงรอบจุด
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.22)';
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            // ตัวจุดสีแดงขอบขาว
+            ctx.fillStyle = '#f43f5e';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 7.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        /* ========================================================= */
+        /* MINI QUIZ SYSTEM                                          */
+        /* ========================================================= */
+        const ALL_EXACT_CHOICES = [
+            { html: '0', key: '0' },
+            { html: '1', key: '1' },
+            { html: '-1', key: '-1' },
+            { html: '<span class="frac"><span>1</span><span>2</span></span>', key: '1/2' },
+            { html: '-<span class="frac"><span>1</span><span>2</span></span>', key: '-1/2' },
+            { html: '<span class="frac"><span>√2</span><span>2</span></span>', key: '√2/2' },
+            { html: '-<span class="frac"><span>√2</span><span>2</span></span>', key: '-√2/2' },
+            { html: '<span class="frac"><span>√3</span><span>2</span></span>', key: '√3/2' },
+            { html: '-<span class="frac"><span>√3</span><span>2</span></span>', key: '-√3/2' },
+            { html: '√3', key: '√3' },
+            { html: '-√3', key: '-√3' },
+            { html: '<span class="frac"><span>√3</span><span>3</span></span>', key: '√3/3' },
+            { html: '-<span class="frac"><span>√3</span><span>3</span></span>', key: '-√3/3' },
+            { html: 'หาค่าไม่ได้', key: 'หาค่าไม่ได้' }
+        ];
+
+        function generateQuizQuestion() {
+            quizAnswered = false;
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('quiz-hint-text').classList.add('hidden');
+
+            // สุ่มมุมมาตรฐาน 1 มุม
+            const angleObj = STANDARD_ANGLES[Math.floor(Math.random() * STANDARD_ANGLES.length)];
+            // สุ่มฟังก์ชัน sin, cos, หรือ tan
+            const funcs = ['sin', 'cos', 'tan'];
+            const fn = funcs[Math.floor(Math.random() * funcs.length)];
+            // สุ่มรูปแบบโจทย์ระหว่าง องศา กับ เรเดียน
+            const useRadian = Math.random() > 0.45;
+
+            let correctKey, correctHtml;
+            if (fn === 'sin') {
+                correctKey = angleObj.sinPlain;
+                correctHtml = angleObj.sinHtml;
+            } else if (fn === 'cos') {
+                correctKey = angleObj.cosPlain;
+                correctHtml = angleObj.cosHtml;
+            } else {
+                correctKey = angleObj.tanPlain;
+                correctHtml = angleObj.tanHtml;
+            }
+
+            const angleDisplay = useRadian ? angleObj.radHtml : `${angleObj.deg}°`;
+            document.getElementById('quiz-badge').textContent = `ข้อที่ ${quizTotal + 1}`;
+            document.getElementById('quiz-question').innerHTML = `<span>${fn}(</span>${angleDisplay}<span>) = ?</span>`;
+
+            // สร้างตัวเลือกหลอก 3 ข้อ + คำตอบที่ถูก 1 ข้อ
+            const distractors = ALL_EXACT_CHOICES
+                .filter(c => c.key !== correctKey)
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 3);
+
+            const options = [...distractors, { html: correctHtml, key: correctKey }]
+                .sort(() => Math.random() - 0.5);
+
+            currentQuiz = {
+                deg: angleObj.deg,
+                radPlain: angleObj.radPlain,
+                q: angleObj.q,
+                fn: fn,
+                correctKey: correctKey,
+                correctHtml: correctHtml
+            };
+
+            // ตั้งค่าคำใบ้
+            document.getElementById('quiz-hint-text').textContent = 
+                `คำใบ้: มุม ${angleObj.deg}° (${angleObj.radPlain}) อยู่ในตำแหน่ง ${angleObj.q} พิจารณาเครื่องหมายของค่า ${fn} ในจตุภาคนั้น`;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.key = opt.key;
+                btn.className = 'quiz-opt-btn py-4 px-4 rounded-xl border-2 border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/40 text-xl font-bold text-slate-800 transition flex items-center justify-center min-h-[68px] shadow-sm';
+                btn.innerHTML = opt.html;
+                btn.onclick = () => submitQuizAnswer(opt.key, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function submitQuizAnswer(selectedKey, clickedBtn) {
+            if (quizAnswered) return;
+            quizAnswered = true;
+            quizTotal++;
+
+            const isCorrect = selectedKey === currentQuiz.correctKey;
+            if (isCorrect) quizScore++;
+
+            document.getElementById('quiz-score').textContent = quizScore;
+            document.getElementById('quiz-total').textContent = quizTotal;
+
+            // อัปเดตสีปุ่มตัวเลือกทั้งหมด
+            document.querySelectorAll('.quiz-opt-btn').forEach(btn => {
+                btn.disabled = true;
+                const k = btn.dataset.key;
+                if (k === currentQuiz.correctKey) {
+                    btn.classList.remove('border-slate-200', 'bg-white');
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
+                } else if (btn === clickedBtn && !isCorrect) {
+                    btn.classList.remove('border-slate-200', 'bg-white');
+                    btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-800');
+                } else {
+                    btn.classList.add('opacity-50');
+                }
+            });
+
+            // แสดงกล่องเฉลย
+            const fbBox = document.getElementById('quiz-feedback');
+            const fbTitle = document.getElementById('quiz-feedback-title');
+            const fbDesc = document.getElementById('quiz-feedback-desc');
+
+            fbBox.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-900', 'bg-rose-50', 'border-rose-200', 'text-rose-900');
+
+            if (isCorrect) {
+                fbBox.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-900');
+                fbTitle.textContent = '🎉 ถูกต้อง! ยอดเยี่ยมมาก';
+            } else {
+                fbBox.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-900');
+                fbTitle.textContent = '❌ ยังไม่ถูก ลองดูเฉลยนะ';
+            }
+            fbDesc.innerHTML = `ค่าของ <strong>${currentQuiz.fn}(${currentQuiz.deg}°)</strong> หรือ <strong>${currentQuiz.fn}(${currentQuiz.radPlain})</strong> คือ <strong>${currentQuiz.correctHtml}</strong> (${currentQuiz.q})`;
+        }
+
+        function toggleQuizHint() {
+            const hint = document.getElementById('quiz-hint-text');
+            hint.classList.toggle('hidden');
+        }
+
+        function inspectQuizAngle() {
+            if (currentQuiz) {
+                jumpToAngle(currentQuiz.deg);
+            }
+        }
+    </script>
+</body>
+</html>
